@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Chart of day</title>
+		<script type="text/javascript" src="d3.js"></script>
+        <script type="text/javascript" src="styles.js"></script>
+	</head>
+	<body>
+		<script type="text/javascript">
+
+            //DATA SOURCE
+            var fileName="changeme_dual line.csv";
+
+            //COLOUR SCHEME
+            //choose from burgundy,grey,skyblue,palegreen,duckegg,deepblue or even ftpink
+            var style=deepblue;
+
+            //TITLES
+            var title="Title goes here"
+            var titleSize=40;
+            var source="Source: Add source"
+
+            var padding = {left:90,right:70,top:90,bottom:80}
+            
+            //TIME SERIES OPTIONS
+            //specify the date format
+            var parseDate = d3.time.format("%d/%m/%y").parse;
+            /*
+            examples:
+            "%d-%m-%Y" = 18-03-2001
+            "%m-%d-%Y" = 03-18-2001
+            "%d-%m-%y" = 18-03-01
+            "%d/%m/%Y" = 18/03/2001
+            "%d %b %Y" = 18 Mar 2001
+            "%m/%y" = 03/01
+            you can find lots of examples and a tool for checking date formats at
+            http://bl.ocks.org/zanarmstrong/raw/ca0adb7e426c12c06a95/
+            */
+
+            //SCALE AND Y (VALUE) AXIS
+            var startZero = true;
+            var scaleOverRide//=[300,1000];//this will over-ride ALL scale settings, including startZero
+            var yTicks=3;//rough number of ticks
+
+            //ANNOTATION + HIGHLIGHTING
+            /* Note - Smart quotes and other punctuation require putting
+            unicode characters into the string - see example annotation below.
+            Some common character codes:
+
+            u2018	‘	Left single quotation mark
+            u2019	’	Right single quotation mark
+            u201C	“	Left double quotation mark	0911
+            u201D	”	Right double quotation mark	0912
+            u2013	–	En dash	0903
+            u2014	—	Em dash	0904
+            
+            e.g. to put a quote in speechmarks:
+            
+            var annotation="\u201CHouston, we have a problem\u201D";
+
+            Full list of unicode characters and codes here:
+            https://en.wikipedia.org/wiki/List_of_Unicode_characters
+            */
+
+            var annotation="Concise annotation|goes right here";//use vertical pipe for line separator
+            var annoXY=[685,265];//annotation - location from top left corner in pixels
+            var annoSize=40;//size of text for annotation
+            var annoLeading=38;//leading for annotation
+            var annoAlign='end';//alignment for annotation - start, middle or end
+            var highLight//="18/05/11";//date has to be in same date format as main data series
+
+            //REFERENCE LINES
+            var referenceLine//=[700,"target"];//add a full-width reference line based on y axis value - just remove value to not feature
+            var zeroLine//=true;//add a zero reference line?
+
+
+            /*SHOULD NOT NEED TO CHANGE MUCH BELOW HERE*/
+
+            //dimensions and inner padding for chart
+            var w = 804;
+            var h = 402;
+
+            //document structure;
+            var svg = d3.select("body").append("svg").attr("width",w).attr("height",h);
+
+            //background color
+            svg.append("rect").attr("width",w).attr("height",h).attr("class","backGround")
+
+            d3.csv(fileName, function(data) {
+
+                //find out if there is an extra series
+                var seriesNames = Object.keys(data[0]);
+
+
+                var refSeries=false;
+                if (seriesNames.length==3){
+                    refSeries=true;
+                }
+
+                var myValue = data.filter(function(d){
+                    return d.x==highLight;
+                })
+
+                //parse the data
+                data.forEach(function(d)    {
+                    d.y=+d.y;
+                    d.x=parseDate(d.x);
+                });
+                var valueRange = d3.extent(data, function(d) {
+                    return d.y;
+                });
+                var dateRange = d3.extent(data, function(d) {
+                    return d.x;
+                });
+
+                if (startZero){
+                    valueRange=[0,valueRange[1]];
+                }
+
+                if (scaleOverRide){
+                   valueRange=scaleOverRide;
+                }
+
+                //scales
+                var xScale = d3.time.scale()
+                    .domain(dateRange)
+                    .range([0,w-(padding.left+padding.right)])
+                    .nice();
+                var yScale = d3.scale.linear()
+                    .domain(valueRange)
+                    .range([h-(padding.top+padding.bottom),0]);
+
+                //axes
+                var xAxis = d3.svg.axis()
+                    .scale(xScale)
+                    .ticks(4)
+                    .orient("bottom")
+                var yAxis = d3.svg.axis()
+                    .scale(yScale)
+                    .orient("left")
+                    .ticks(yTicks)
+                    .tickSize(10)
+                svg.append("g")
+                    .attr("class","yAxis")
+                    .attr("transform",function(){
+                        return "translate("+padding.left+","+padding.top+")";
+                    })
+                    .call(yAxis);
+                svg.append("g")
+                    .attr("class","xAxis")
+                    .attr("transform",function(){
+                        return "translate("+padding.left+","+((h-padding.bottom)+5)+")";
+                    })
+                    .call(xAxis);
+
+                if (zeroLine){
+                    svg.append("line")
+                        .attr("transform","translate(0,"+padding.top+")")
+                        .attr("x1",padding.left)
+                        .attr("y1",function(d){
+                            return yScale(0)
+                        })
+                        .attr("x2",w-padding.right)
+                        .attr("y2",function(d){
+                            return yScale(0)
+                        })
+                        .attr("class","zeroLine")
+                }
+
+                //add reference line if needed
+                if (referenceLine){
+                    var refGroup = svg.append("g")
+                        .attr("class","refLine")
+                        .attr("transform","translate(0,"+padding.top+")")
+                        .datum(referenceLine);
+
+                    refGroup.append("line")
+                        .attr("x1",padding.left+5)
+                        .attr("x2",w-padding.right)
+                        .attr("y1",function(d){
+                            return yScale(d[0])
+                        })
+                        .attr("y2",function(d){
+                            return yScale(d[0])
+                        })
+                        .attr("stroke-width","1px")
+                        .attr("stroke","black");
+
+                    refGroup.append("text")
+                        .attr("x",(w-padding.right)+5)
+                        .attr("y",function(d){
+                            return yScale(d[0])+5;
+                        })
+                        .text(function(d){
+                            return d[1];
+                        })
+                }
+
+                //line generator
+                var lineGen = d3.svg.line()
+                    .x(function(d) {
+                        return xScale(d.x);
+                    })
+                    .y(function(d) {
+                        return yScale(d.y);
+                    })
+
+                //add the reference series if needed
+                if (refSeries){
+                    var refData=data.map(function(d){return{ "x":d.x,"y":d[seriesNames[2]]}});
+
+                    var refSeriesGroup = svg.append("g").attr("transform",function(){
+                        return "translate("+padding.left+","+padding.top+")";
+                    }).attr("fill","none");
+
+                    refSeriesGroup.append("path")
+                    .datum(refData)
+                    .attr("class","secondary_line")
+                    .attr('d', function(d){ return lineGen(d); });
+
+                    refSeriesGroup.append("text")
+                        .attr("x",xScale(dateRange[1])+5)
+                        .attr("y",yScale(refData[refData.length-1].y))
+                        .attr("class","secondary_label")
+                        .text(seriesNames[2])
+                }
+
+                //data for main series
+                var lineData=data.map(function(d){return{ "x":d.x,"y":d.y}});
+
+                //create group for line series
+                var lineGroup = svg.append("g").attr("transform",function(){
+                    return "translate("+padding.left+","+padding.top+")";
+                }).attr("fill","none")
+
+                //line for main series
+                var line1 = lineGroup
+                    .append("path")
+                    .datum(lineData)
+                    .attr("class","primary_line")
+                    .attr('d', function(d){ return lineGen(d); });
+
+                //annotation circle
+                if (highLight){
+                    var dotGroup = svg.append("g").attr("transform",function(){
+                    return "translate("+padding.left+","+padding.top+")";
+                    });
+                    var dot = dotGroup.append("circle")
+                    .attr("cx",function(){
+                        return xScale(myValue[0].x);
+                    })
+                    .attr("cy",function(){
+                        return yScale(myValue[0].y);
+                    })
+                    .attr("class","highLight")
+                    .attr("r",0);
+                }
+
+                //hide line till animation
+                var lineLen = line1.node().getTotalLength()*2;
+                lineGroup.attr("stroke-dasharray",lineLen + ", "+lineLen).attr("stroke-dashoffset",lineLen);
+
+                //annotation
+                var annoLines = annotation.split("|");
+                var annotate = svg.append("text")
+                    .attr("class","annotation")
+                    .attr("text-anchor",annoAlign)
+                    .attr("x",annoXY[0])
+                    .attr("y",annoXY[1])
+                    .attr("font-size",annoSize)
+                    .attr("opacity",0);
+
+                annotate.selectAll("tspan")
+                    .data(annoLines)
+                    .enter()
+                    .append("tspan")
+                    .append("tspan").text(function(d){
+                        return d;
+                    })
+                    .attr("x",annoXY[0])
+                    .attr("y",function(d,i){
+                        return annoXY[1]+(i*annoLeading);
+                    });
+
+                //titles
+                svg.append("text").attr("class","title").attr("x",20).attr("y",40).attr("font-size",titleSize).text(title);
+
+                //source
+                svg.append("text").attr("class","source").attr("x",20).attr("y",385).text(source);
+
+                //apply the styles as attributes
+                d3.selectAll('*').attr('style','');
+                Object.keys(style).forEach(function(selector){
+                    d3.selectAll(selector)
+                        .attr(style[selector]);
+                });
+
+                //animate line
+                lineGroup.transition()
+                    .duration(4000)
+                    .delay(500)
+                    .attr("stroke-dashoffset", 0)
+
+                //fade in annotation
+                annotate.transition()
+                    .delay(3000)
+                    .duration(500)
+                    .attr("opacity",1)
+
+                if (highLight){
+                    lineGroup.transition().delay(3000).attr("style","opacity:0.8");
+                    dot.transition().delay(3000).attr("r",10);
+                }
+
+            })
+
+		</script>
+
+	</body>
+</html>

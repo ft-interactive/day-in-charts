@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Chart of day</title>
+		<script type="text/javascript" src="d3.js"></script>
+        <script type="text/javascript" src="styles.js"></script>
+	</head>
+	<body>
+		<script type="text/javascript">
+
+            //DATA SOURCE
+            var fileName="changeme_cat.csv";
+
+            //COLOUR SCHEME - choose from burgundy,grey,skyblue,palegreen,duckegg,deepblue or even ftpink
+            var style=deepblue;
+
+            //TITLES
+            var title="Title goes here";
+            var titleSize=40;
+            var source="Source: goes here";
+
+            //padding
+            var padding = {left:90,right:90,top:90,bottom:100}
+
+            //Y AXIS OPTIONS
+            var startZero = true;
+            var scaleOverRide//=[0,300];//this will over-ride all scale settings, including startZero
+            var yTicks=4;//rough number of ticks on y axis
+            var colGapRatio=0.2;//ratio of column width to gap width
+
+            //ANNOTATION
+            var annotation="Concise annotation|goes right|here";//use vertical pipe for line separator
+            var annoXY=[720,120];//annotation - location from top left corner in pixels
+            var annoSize=34;//size of text for annotation
+            var annoLeading=32;//leading for annotation
+            var annoAlign='end';//alignment for annotation - start, middle or end
+
+            /* Note - Smart quotes and other punctuation require putting
+            unicode characters into the string - see example annotation below.
+            Some common character codes:
+
+            u2018	‘	Left single quotation mark
+            u2019	’	Right single quotation mark
+            u201C	“	Left double quotation mark	0911
+            u201D	”	Right double quotation mark	0912
+            u2013	–	En dash	0903
+            u2014	—	Em dash	0904
+            
+            e.g. to put a quote in speechmarks:
+            
+            var annotation="\u201CHouston, we have a problem\u201D";
+
+            Full list of unicode characters and codes here:
+            https://en.wikipedia.org/wiki/List_of_Unicode_characters
+            */
+
+
+            //REFERENCE LINE & HIGHLIGHT INFO
+            var highCol=[6];//an index number to specify which column to highlight (starts at 0)
+            var zeroLine=false;//add a zero reference line?
+            var referenceLine//=[101.964,"average"];//add a full-width reference line, with label, based on y axis value - just comment out value to not feature
+
+            //CHART TYPE
+            var chartData = "cat";//is the x axis time or cat data?
+
+            //CATEGORY COLUMN OPTIONS
+            var labelSize = 18;
+
+            //TIME SERIES OPTIONS
+            var timeTicks = 4;//rough number of x axis ticks/labels for time series
+            //specify the date format
+            var parseDate = d3.time.format("%Y").parse;
+            /*
+            examples:
+            "%d-%m-%Y" = 18-03-2001
+            "%m-%d-%Y" = 03-18-2001
+            "%d-%m-%y" = 18-03-01
+            "%d/%m/%Y" = 18/03/2001
+            "%d %b %Y" = 18 Mar 2001
+            "%d %B %Y" = 18 March 2001
+            "%m/%y" = 03/01
+            you can find lots of examples and a tool for checking date formats at
+            http://bl.ocks.org/zanarmstrong/raw/ca0adb7e426c12c06a95/
+            */
+
+            /*SHOULD NOT NEED TO CHANGE MUCH BELOW HERE*/
+            //dimensions and inner padding for chart
+            var w = 804;
+            var h = 402;
+
+            //document structure;
+            var svg = d3.select("body").append("svg").attr("width",w).attr("height",h);
+
+            //background color
+            svg.append("rect").attr("width",w).attr("height",h).attr("class","backGround")
+
+            d3.csv(fileName, function(data) {
+
+                //title
+                svg.append("text").attr("class","title").attr("x",20).attr("y",40).attr("font-size",titleSize).text(title);
+
+                //source
+                svg.append("text").attr("class","source").attr("x",20).attr("y",385).text(source);
+
+                //parse the data for constant data elements
+                data.forEach(function(d)    {
+                        d.y=+d.y;
+                });
+
+                //calculate the range of the data
+                var yRange = d3.extent(data, function(d) {
+                        return d.y;
+                    });
+
+                //clamp the chart scale to zero if required
+                if (startZero){
+                    yRange=[0,yRange[1]];
+                }
+
+                if (scaleOverRide){
+                   yRange=scaleOverRide;
+                }
+
+                //yscale
+                var yScale = d3.scale.linear()
+                        .domain(yRange)
+                        .range([h-(padding.top+padding.bottom),0])
+
+                 if (zeroLine){
+                    svg.append("line")
+                        .attr("transform","translate(0,"+padding.top+")")
+                        .attr("x1",padding.left)
+                        .attr("y1",function(d){
+                            return yScale(0)
+                        })
+                        .attr("x2",w-padding.right)
+                        .attr("y2",function(d){
+                            return yScale(0)
+                        })
+                        .attr("class","zeroLine")
+                }
+
+                //yaxis
+                var yAxis = d3.svg.axis()
+                    .scale(yScale)
+                    .orient("left")
+                    .ticks(yTicks)
+                    .tickSize(10)
+
+                svg.append("g")
+                    .attr("class","yAxis")
+                    .attr("transform",function(){
+                        return "translate("+padding.left+","+padding.top+")";
+                    })
+                    .call(yAxis);
+
+                //extract category names
+                var cats = []
+                    //parse the data
+                    data.forEach(function(d)    {
+                        cats.push(d.x);
+                    });
+
+                //xscale - ORDINAL
+                var xScale = d3.scale.ordinal()
+                    .domain(cats)
+                    .rangeRoundBands([0,w-(padding.left+padding.right)],colGapRatio);
+
+                //create bars
+                var graphLayer = svg.append("g")
+                    .attr("id","graphLayer")
+                    .attr("transform","translate("+padding.left+","+padding.top+")");
+
+                graphLayer.selectAll("rect")
+                    .data(data)
+                    .enter()
+                    .append("rect")
+                    .classed("column",true)
+                    .attr("x",function(d,i){
+                        return xScale(cats[i]);
+                    })
+                   .attr("y",yScale(0))
+                    .attr("height",0)
+                    .attr("width",function(d){
+                        return xScale.rangeBand()
+                    });
+
+                //append a regular ordinal (category) axis which applies a label to *each* bar
+                if (chartData=="cat"){
+
+                    //xaxis
+                    var xAxis = d3.svg.axis()
+                        .scale(xScale)
+                        .ticks(10)
+                        .orient("bottom")
+
+                    //set size of labels
+                    d3.selectAll(".xAxis text")
+                        .attr("font-size",labelSize)
+
+                }//end if cat
+
+                //create a time series axis which *does not* apply a label to each bar
+                if (chartData=="time"){
+
+                    //parse dates
+                    data.forEach(function(d)    {
+                        d.time = parseDate(d.x);
+                    });
+
+                    //calculate date range
+                    var dateRange = d3.extent(data, function(d){
+                        return d.time;
+                    })
+
+                    //calculate reference points of start and end bars to use for time scale
+                    var barRatio = 1-colGapRatio;
+
+                    var rects = graphLayer.selectAll("rect");
+                    var refPoints = []
+                    rects.each(function(d,i){
+                        var x = parseFloat(d3.select(this).attr("x"));
+                        var width = parseFloat(d3.select(this).attr("width"));
+                        var gap = width/barRatio*colGapRatio;
+                        refPoints.push(x-(gap/2));
+                    })
+                    var centreExtent = d3.extent(refPoints);
+
+                    //set up the scale object
+                    var xScaleTime = d3.time.scale()
+                        .domain(dateRange)
+                        .range([centreExtent[0],centreExtent[1]]);
+                    var xAxisTime = d3.svg.axis()
+                        .scale(xScaleTime)
+                        .orient("bottom")
+                        .ticks(timeTicks);
+
+                    //append time axis to graph
+                    svg.append("g")
+                        .attr("class","xAxisTime")
+                        .attr("transform",function(){
+                            return "translate("+padding.left+","+((h-padding.bottom)+5)+")";
+                        })
+                        .call(xAxisTime);
+
+                }//end if time
+
+                //add reference line if needed
+                    if (referenceLine){
+                    var refGroup = svg.append("g")
+                        .attr("class","refLine")
+                        .attr("transform","translate(0,"+padding.top+")")
+                        .datum(referenceLine);
+
+                    refGroup.append("line")
+                        .attr("x1",padding.left+5)
+                        .attr("x2",w-padding.right)
+                        .attr("y1",function(d){
+                            return yScale(d[0])
+                        })
+                        .attr("y2",function(d){
+                            return yScale(d[0])
+                        })
+                        .attr("stroke-width","1px")
+                        .attr("stroke","black");
+
+                    refGroup.append("text")
+                        .attr("x",(w-padding.right)+5)
+                        .attr("y",function(d){
+                            return yScale(d[0])+5;
+                        })
+                        .text(function(d){
+                            return d[1];
+                        })
+                }
+
+                //annotation
+                var annoLines = annotation.split("|");
+                var annotate = svg.append("text")
+                    .attr("class","annotation")
+                    .attr("text-anchor",annoAlign)
+                    .attr("x",annoXY[0])
+                    .attr("y",annoXY[1])
+                    .attr("opacity",0);
+
+                annotate.selectAll("tspan")
+                    .data(annoLines)
+                    .enter()
+                    .append("tspan")
+                    .append("tspan").text(function(d){
+                        return d;
+                    })
+                    .attr("font-size",annoSize)
+                    .attr("x",annoXY[0])
+                    .attr("y",function(d,i){
+                        return annoXY[1]+(i*annoLeading);
+                    });
+
+                //apply the styles as attributes
+                d3.selectAll('*').attr('style','');
+                Object.keys(style).forEach(function(selector){
+                    d3.selectAll(selector)
+                        .attr(style[selector]);
+                });
+
+                //get ready for transition
+                var numBars = graphLayer.selectAll("rect")[0].length;
+                var aniDuration = 2000;//total animation duration in milliseconds
+                var animationDelay = 1000;//total delay to start of animation in milliseconds
+                var aniTime = aniDuration/numBars;
+
+                //transition bars
+                graphLayer.selectAll("rect")
+                    .transition()
+                    .duration(aniTime*3)
+                    .delay(function(d,i){
+                        return animationDelay+(aniTime*i);
+                    })
+                    .attr("y",function(d){
+                        if (d.y>0){
+                            return yScale(d.y);
+                        }   else    {
+                            return yScale(0);
+                        }
+                    })
+                    .attr("height",function(d){
+                        if (d.y>0){
+                            return (h-padding.top-padding.bottom)-yScale(d.y-Math.abs(0-yRange[0]))-1;
+                        }   else    {
+                            return (h-padding.top-padding.bottom)-yScale(Math.abs(d.y)-Math.abs(0-yRange[0]));
+                        }
+                    })
+                    .each("end",function(d,i){
+                        //check to see if it's the last column...
+                        if (i==(numBars-1)){
+                            //...if so, fade in annotation
+                            annotate.transition()
+                            .duration(500)
+                            .attr("opacity",1)
+                            .each("start", function(){
+                                //filter the selection to highlight
+                                graphLayer.selectAll("rect").filter(function(d,i) {
+                                    var filter = true;
+                                    highCol.forEach(function(obj,j){
+                                        if (obj==i){
+                                            filter=false;
+                                        }
+                                    })
+                                    return filter;
+                                }).transition().duration(1000).style("opacity",0.5)
+                            });
+                        }
+                    })
+
+                //applies category labels using HTML text in foreignObject element
+                if (chartData=="cat"){
+                    var labels = svg.append("g")
+                        .attr("transform",function(){
+                                return "translate("+padding.left+","+((h-padding.bottom)+5)+")";
+                        })
+                        .selectAll("foreignObject")
+                        .data(data)
+                        .enter()
+                        .append("foreignObject")
+                        .attr("x",function(d,i){
+                            return xScale(cats[i]);
+                        })
+                        .attr("width",xScale.rangeBand())
+                        .attr("height",200)
+                        .attr("class","plabels")
+
+                    labels.append("xhtml:p")
+                        .attr("class","clabel")
+                        .style("font", function(){
+                            return labelSize+"px 'Metric'";
+                        })
+                        .style("color", style[".xAxis text"].fill)
+                        .style("line-height","90%")
+                        .style("text-align", "center")
+                        .style("overflow", "hidden")
+                        .style("padding-top", "2px")
+                        .style("word-break", "break-word")
+                        .style("hyphens", "auto")
+                        .style("-webkit-hyphens","auto")
+                        .html(function(d){
+                            return "<span>"+d.x+"</span>";
+                        })
+                }
+            })//end data load
+
+		</script>
+
+	</body>
+</html>
