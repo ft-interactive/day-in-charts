@@ -22,6 +22,29 @@ var burgundy = {
         '.highLight':{'stroke':'#fff','stroke-width':'5px','fill':'none'}
     };
 
+    var red = {
+            '.column':{'fill':'red','stroke':'#fff'},
+            '.backGround':{'fill':'#76273f'},
+            'text':{'font-family':'Metric, sans-serif'},
+            '.title':{'fill':'#fff','font-weight':'100'},
+            '.annotation':{'fill':'#fff','font-weight':'400'},
+            '.source':{'fill':'#fff','font-size':'16px','font-weight':'100'},
+            '.primary_line':{'fill':'none','stroke':'#fff','stroke-width':'5px','stroke-linecap':'round','stroke-linejoin':'round'},
+            '.secondary_line':{'display':'none'},
+            '.xAxis path':{'fill':'none'},
+            '.xAxis text':{'fill':'#fff','font-weight':'100','text-anchor':'middle'},
+            '.xAxis line':{'fill':'none','stroke':'none'},
+            '.xAxisTime path':{'fill':'none'},
+            '.xAxisTime text':{'fill':'#fff','font-weight':'100','font-size':'26px','text-anchor':'middle'},
+            '.xAxisTime line':{'fill':'none','stroke':'#fff','stroke-width':'1px'},
+            '.yAxis path':{'fill':'none'},
+            '.yAxis text':{'fill':'#fff','font-weight':'100','font-size':'26px','text-anchor':'end'},
+            '.yAxis line':{'fill':'none','stroke':'#fff','stroke-width':'1px'},
+            '.refLine text':{'fill':'#fff','font-weight':'100','font-size':'22px','text-anchor':'start'},
+            '.refLine line':{'fill':'none','stroke':'#fff','stroke-width':'1px','stroke-dasharray':'2,2'},
+            '.zeroLine':{'fill':'none','stroke':'#fff','stroke-width':'1px'},
+            '.highLight':{'stroke':'#fff','stroke-width':'5px','fill':'none'}
+        };
 var grey = {
         '.column':{'fill':'#c89a2c','stroke':'#c89a2c'},
         '.backGround':{'fill':'#343334'},
