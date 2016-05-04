@@ -147,12 +147,19 @@
                         return "translate("+padding.left+","+padding.top+")";
                     })
                     .call(yAxis);
+                
                 svg.append("g")
                     .attr("class","xAxis")
                     .attr("transform",function(){
                         return "translate("+padding.left+","+((h-padding.bottom)+5)+")";
                     })
                     .call(xAxis);
+                
+                //offset ticks a little to handle larger font
+                 d3.select('.xAxis')
+                    .selectAll('text')
+                    .attr('dy',18)
+                
 
                 if (zeroLine){
                     svg.append("line")
